@@ -8,8 +8,10 @@ app.use(cors());
 app.use(express.json());
 const port = process.env.PORT || 4000;
 const mongoURI = process.env.MONGO_URI;
+const bookRoutes = require('./routes/books');
 const authRoutes = require('./routes/auth');
 
+app.use('/api/books', bookRoutes);
 app.use('/api/auth', authRoutes);
 
 mongoose.connect(mongoURI)

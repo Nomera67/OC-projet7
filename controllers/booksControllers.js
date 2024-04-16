@@ -29,16 +29,26 @@ exports.getBestRatedBooks = async (req, res) => {
 };
 
 exports.createBook = async (req, res) => {
+
+    const data = {
+        title: req.body.title,
+        author: req.body.author,
+        year: req.body.year, 
+        genre: req.body.genre
+    };
+
     try {
-        const newBook = new Book(req.body);
+        const newBook = new Book(data);
         const savedBook = await newBook.save();
         res.status(201).json(savedBook);
     } catch (error) {
+        console.error(error);
         res.status(400).json({ message: error.message });
     }
 };
 
-exports.updateBook = async (req, res) => {
+
+exports.updateBookById = async (req, res) => {
     try {
         const updatedBook = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(updatedBook);
@@ -47,7 +57,7 @@ exports.updateBook = async (req, res) => {
     }
 };
 
-exports.deleteBook = async (req, res) => {
+exports.deleteBookById = async (req, res) => {
     try {
         const book = await Book.findByIdAndDelete(req.params.id);
         if (!book) res.status(404).json({ message: 'Book not found' });
