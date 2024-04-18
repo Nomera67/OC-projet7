@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 app.use(cors());
@@ -13,6 +14,8 @@ const authRoutes = require('./routes/auth');
 
 app.use('/api/books', bookRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/pictures', express.static(path.join(__dirname, 'pictures')));
+
 
 mongoose.connect(mongoURI)
 .then(() => console.log('Connected to MongoDB Atlas'))
