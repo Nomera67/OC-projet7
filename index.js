@@ -14,7 +14,7 @@ const authRoutes = require('./routes/auth');
 
 app.use('/api/books', bookRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/pictures', express.static(path.join(__dirname, 'pictures')));
+app.use('/public', express.static(path.join(__dirname, 'images')));
 
 
 mongoose.connect(mongoURI)

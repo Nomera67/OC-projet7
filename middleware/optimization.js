@@ -7,6 +7,7 @@ const optimizeImage = async (req, res, next) => {
 
     const newFilename = `image_${Date.now()}.webp`;
     const outputPath = path.join(__dirname, '../images', newFilename);
+    const publicUrl = `${req.protocol}://${req.get('host')}/public/${newFilename}`
 
     try {
         await sharp(req.file.buffer)
@@ -16,6 +17,7 @@ const optimizeImage = async (req, res, next) => {
 
         req.file.path = outputPath;
         req.file.filename = newFilename;
+        req.file.url = publicUrl;
 
         next();
     } catch (error) {

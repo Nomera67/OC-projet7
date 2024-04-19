@@ -6,6 +6,8 @@ const upload = require('../middleware/upload');
 const optimizeImage = require('../middleware/optimization');
 
 
+// Get the top 3 best-rated books
+router.get('/bestrating', booksController.getBestRatedBooks);
 
 // Get array of books
 router.get('/', booksController.getAllBooks);
@@ -17,7 +19,7 @@ router.get('/:id', booksController.getBookById);
 router.post('/', authMiddleware, upload.single('image'), optimizeImage, booksController.createBook);
 
 // Update a book by his id
-router.put('/:id', upload.single('image'), authMiddleware, booksController.updateBookById);
+router.put('/:id', authMiddleware, upload.single('image'), optimizeImage, booksController.updateBookById);
 
 // Delete a book by his id
 router.delete('/:id', authMiddleware, booksController.deleteBookById);

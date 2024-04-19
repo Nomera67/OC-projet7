@@ -1,4 +1,6 @@
-const Book = require('../models/Book'); 
+const Book = require('../models/Book');
+const fs = require('fs');
+const path = require('path');
 
 exports.getAllBooks = async (req, res) => {
     try {
@@ -22,16 +24,17 @@ exports.getBookById = async (req, res) => {
 exports.getBestRatedBooks = async (req, res) => {
     try {
         const books = await Book.find().sort({ averageRating: -1 }).limit(3);
+        if (books.length === 0) {
+            return res.status(404).json({ message: "No highly rated books found." });
+        }
         res.json(books);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Failed to retrieve best rated books:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 
 exports.createBook = async (req, res) => {
-    console.log('Body:', req.body);
-    console.log('File:', req.file);
-
     try {
         if (typeof req.body.book === 'string') {
             req.body.book = JSON.parse(req.body.book);
@@ -46,7 +49,7 @@ exports.createBook = async (req, res) => {
             genre,
             ratings,
             averageRating,
-            imageUrl: req.file.path,
+            imageUrl: req.file.url,
             userId
         });
 
@@ -58,15 +61,42 @@ exports.createBook = async (req, res) => {
     }
 };
 
-
-
-
 exports.updateBookById = async (req, res) => {
     try {
-        const updatedBook = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(updatedBook);
+        const book = await Book.findById(req.params.id);
+        if (!book) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        const oldImagePath = book.imageUrl;
+        const baseUrl = req.protocol + '://' + req.get('host');
+
+        book.title = req.body.title || book.title;
+        book.author = req.body.author || book.author;
+        book.year = req.body.year || book.year;
+        book.genre = req.body.genre || book.genre;
+
+        if (req.file) {
+            book.imageUrl = `${baseUrl}/public/${req.file.filename}`;
+        }
+
+        await book.save();
+
+        if (req.file && oldImagePath) {
+            const oldImageFullPath = path.join(__dirname, 'public', path.basename(oldImagePath));
+            if (fs.existsSync(oldImageFullPath)) {
+                fs.unlink(oldImageFullPath, (err) => {
+                    if (err) {
+                        console.error('Failed to delete old image:', err);
+                    }
+                });
+            }
+        }
+
+        res.json(book);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Error updating book:', error);
+        res.status(500).json({ message: 'Error updating book: ' + error.message });
     }
 };
 
