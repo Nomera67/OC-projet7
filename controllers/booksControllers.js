@@ -2,6 +2,7 @@ const Book = require('../models/Book');
 const fs = require('fs');
 const path = require('path');
 
+// Controller to get all books
 exports.getAllBooks = async (req, res) => {
     try {
         const books = await Book.find();
@@ -11,8 +12,10 @@ exports.getAllBooks = async (req, res) => {
     }
 };
 
+// Controller to get a specific book by his id
 exports.getBookById = async (req, res) => {
     try {
+        // Try to find the book by his id and answer with the book when found
         const book = await Book.findById(req.params.id);
         if (!book) res.status(404).json({ message: 'Book not found' });
         res.json(book);
@@ -21,8 +24,10 @@ exports.getBookById = async (req, res) => {
     }
 };
 
+// Controller to get the three best rated books
 exports.getBestRatedBooks = async (req, res) => {
     try {
+        // Find the three books with best rating. averageRating -1 is to sort books in decreasing order
         const books = await Book.find().sort({ averageRating: -1 }).limit(3);
         if (books.length === 0) {
             return res.status(404).json({ message: "No highly rated books found." });
@@ -34,6 +39,7 @@ exports.getBestRatedBooks = async (req, res) => {
     }
 };
 
+// Controller to creat a book
 exports.createBook = async (req, res) => {
     try {
         if (typeof req.body.book === 'string') {
@@ -42,6 +48,7 @@ exports.createBook = async (req, res) => {
 
         const { userId, title, author, year, genre, ratings, averageRating } = req.body.book;
 
+        // Create a book with requested informations
         const newBook = new Book({
             title,
             author,
@@ -61,36 +68,37 @@ exports.createBook = async (req, res) => {
     }
 };
 
+// Controller to update a book by his ID
 exports.updateBookById = async (req, res) => {
     try {
+        // Find the book with his ID
         const book = await Book.findById(req.params.id);
         if (!book) {
             return res.status(404).json({ message: 'Book not found' });
         }
 
-        const oldImagePath = book.imageUrl;
-        const baseUrl = req.protocol + '://' + req.get('host');
+        const oldImagePath = book.imageUrl ? path.join(__dirname, '../images', path.basename(book.imageUrl)) : null;
 
+        // Update properties of the book
         book.title = req.body.title || book.title;
         book.author = req.body.author || book.author;
         book.year = req.body.year || book.year;
         book.genre = req.body.genre || book.genre;
 
         if (req.file) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
             book.imageUrl = `${baseUrl}/public/${req.file.filename}`;
         }
 
         await book.save();
 
-        if (req.file && oldImagePath) {
-            const oldImageFullPath = path.join(__dirname, 'public', path.basename(oldImagePath));
-            if (fs.existsSync(oldImageFullPath)) {
-                fs.unlink(oldImageFullPath, (err) => {
-                    if (err) {
-                        console.error('Failed to delete old image:', err);
-                    }
-                });
-            }
+        // Delete old picture if a new one is upload
+        if (req.file && oldImagePath && fs.existsSync(oldImagePath)) {
+            fs.unlink(oldImagePath, (err) => {
+                if (err) {
+                    console.error('Failed to delete old image:', err);
+                }
+            });
         }
 
         res.json(book);
@@ -100,33 +108,57 @@ exports.updateBookById = async (req, res) => {
     }
 };
 
+// Controller to delete a book by his ID
 exports.deleteBookById = async (req, res) => {
     try {
+        // Find the book with his ID
         const book = await Book.findByIdAndDelete(req.params.id);
-        if (!book) res.status(404).json({ message: 'Book not found' });
+        if (!book) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        // Get the associated path of his picture
+        const imagePath = book.imageUrl ? path.join(__dirname, '../images', path.basename(book.imageUrl)) : null;
+
+        // Delete the picture of the book
+        if (imagePath && fs.existsSync(imagePath)) {
+            fs.unlink(imagePath, (err) => {
+                if (err) {
+                    console.error('Failed to delete image:', err);
+                }
+            });
+        }
+
         res.status(200).json({ message: 'Book deleted' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error deleting book:', error);
+        res.status(500).json({ message: 'Error deleting book: ' + error.message });
     }
 };
 
+// Controller to add rating to a book
 exports.addRatingToBook = async (req, res) => {
     try {
+        // Find the book with his ID
         const book = await Book.findById(req.params.id);
         if (!book) {
             return res.status(404).send('Book not found');
         }
 
+        // Get the user ID and the notation to the book he gave
         const { userId, grade } = req.body;
 
+        // Case where the user is not connected or notation is not done
         if (!userId || grade === undefined) {
             return res.status(400).send('Missing userId or grade');
         }
 
+        // Case to limit the notation between 0 and 5
         if (grade < 0 || grade > 5) {
             return res.status(400).send('Grade must be between 0 and 5');
         }
 
+        // Case where user already noted the book
         const existingRating = book.ratings.find(r => r.userId.toString() === userId);
         if (existingRating) {
             return res.status(400).send('User has already rated this book');
