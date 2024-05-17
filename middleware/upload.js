@@ -3,6 +3,7 @@ const path = require('path');
 
 const extensionAccepted = [".png", ".jpeg", ".jpg", ".webp"];
 
+// Configuration to memorise images in memory storage to don't do multiples written files
 const storage = multer.memoryStorage();
 
 const filter = (req, file, callback) => {
