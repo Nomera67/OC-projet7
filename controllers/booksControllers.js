@@ -136,40 +136,44 @@ exports.deleteBookById = async (req, res) => {
     }
 };
 
-// Controller to add rating to a book
+// // Controller to add rating to a book
 exports.addRatingToBook = async (req, res) => {
     try {
-        // Find the book with his ID
+        // Find the book by its ID
         const book = await Book.findById(req.params.id);
         if (!book) {
             return res.status(404).send('Book not found');
         }
 
-        // Get the user ID and the notation to the book he gave
-        const { userId, grade } = req.body;
+        // Extract userId and rating from the request body
+        const { userId, rating } = req.body;
 
-        // Case where the user is not connected or notation is not done
-        if (!userId || grade === undefined) {
-            return res.status(400).send('Missing userId or grade');
+        // Check if userId and rating are present
+        if (!userId || rating === undefined) {
+            return res.status(400).send('Missing userId or rating');
         }
 
-        // Case to limit the notation between 0 and 5
-        if (grade < 0 || grade > 5) {
-            return res.status(400).send('Grade must be between 0 and 5');
+        // Check if the rating is within the acceptable range
+        if (rating < 0 || rating > 5) {
+            return res.status(400).send('Rating must be between 0 and 5');
         }
 
-        // Case where user already noted the book
+        // Check if the user has already rated this book
         const existingRating = book.ratings.find(r => r.userId.toString() === userId);
         if (existingRating) {
             return res.status(400).send('User has already rated this book');
         }
 
-        book.ratings.push({ userId, grade });
+        // Add the new rating to the book
+        book.ratings.push({ userId, grade: rating });
+        // Calculate the new average rating
         book.averageRating = book.ratings.reduce((acc, curr) => acc + curr.grade, 0) / book.ratings.length;
 
         await book.save();
         res.status(201).json(book);
     } catch (error) {
+        console.error('Error in addRatingToBook:', error);
         res.status(500).json({ message: error.message });
     }
 };
+
